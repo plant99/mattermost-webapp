@@ -18,7 +18,7 @@ import KeyboardShortcutSequence, {
 import OverlayTrigger from "components/overlay_trigger";
 import Tooltip from "components/tooltip";
 import styled from "styled-components";
-import { ApplyHotkeyMarkdownOptions } from "utils/apply_markdown.utils";
+import { ApplyHotkeyMarkdownOptions } from "utils/markdown/apply_markdown.utils";
 
 const OVERLAY_TIMEOUT = 500;
 

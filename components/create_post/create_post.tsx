@@ -52,7 +52,7 @@ import EmojiIcon from "components/widgets/icons/emoji_icon";
 import Textbox from "components/textbox";
 import TextboxClass from "components/textbox/textbox";
 import TextboxLinks from "components/textbox/textbox_links";
-import ShowFormat from "components/show_format";
+import {ShowFormat} from "components/show_format/show_format";
 
 import MessageSubmitError from "components/message_submit_error";
 import { PostDraft } from "types/store/rhs";
@@ -69,7 +69,7 @@ import { Props, State } from "./create_post.types";
 import { MarkdownFormattedMessage, MarkdownMessageType } from "components/markdown_formatted_message/markdown_formatted_message";
 import { ToggleFormattingBar } from "components/toggle_formatting_bar/toggle_formatting_bar";
 import { FormattingBar } from "components/formatting_bar/formatting_bar";
-import { ApplyHotkeyMarkdownOptions, applyMarkdown } from "utils/apply_markdown.utils";
+import { ApplyHotkeyMarkdownOptions, applyMarkdown } from "utils/markdown/apply_markdown.utils";
 
 const KeyCodes = Constants.KeyCodes;
 
@@ -1416,8 +1416,6 @@ class CreatePost extends React.PureComponent<Props, State> {
                     onClick={() => {
                         this.setState({ showFormat: !this.state.showFormat });
                     }}
-                    postType="post"
-                    channelId={currentChannel.id}
                 />
             );
             toggleFormattingBar = (

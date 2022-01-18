@@ -1,13 +1,14 @@
-import { Instance } from "@popperjs/core";
 import classNames from "classnames";
 import React, { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { ApplyHotkeyMarkdownOptions } from "utils/apply_markdown.utils";
-import ShowFormat from "components/show_format";
+import { ApplyHotkeyMarkdownOptions } from "utils/markdown/apply_markdown.utils";
 import { usePopper } from "react-popper";
-import {FormattingIcon, Icon } from "./formatting_icon";
-import ReactDOM from "react-dom";
+import { Icon } from "./formatting_icon";
 import { CSSTransition } from "react-transition-group";
+import {
+    useFormattingBarControls,
+    useUpdateOnVisibilityChange,
+} from "./formatting_bar.hooks";
 
 const FormattingBarContainer = styled.div`
     display: flex;
@@ -26,10 +27,6 @@ const FormattingBarContainer = styled.div`
         align-items: center;
     }
 
-    &.isRenderedInCommentSection {
-        // responsive formatting bar
-    }
-
     & .control {
         margin: 0 4px;
 
@@ -38,7 +35,11 @@ const FormattingBarContainer = styled.div`
         &.ol {
             margin-right: 5px;
             position: relative;
+        }
 
+        &.heading.wide,
+        &.code.wide,
+        &.ol.wide {
             &:after {
                 content: "";
                 position: absolute;
@@ -55,50 +56,47 @@ const FormattingBarContainer = styled.div`
 `;
 
 const HiddenControlsContainer = styled.div`
-        
-        & > div {
-            padding: 5px;
-            box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
-            border-radius: 4px;
-            border: 1px solid rgba(61, 60, 64, 0.16);
-            background: #fff;
-            
-            transition: transform 0.25s ease, opacity 0.25s ease;
+    & > div {
+        padding: 5px;
+        box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+        border: 1px solid rgba(61, 60, 64, 0.16);
+        background: #fff;
+
+        transition: transform 0.25s ease, opacity 0.25s ease;
+        transform: scale(0);
+        display: flex;
+
+        &.scale-enter {
             transform: scale(0);
-            display: flex;
+            opacity: 0;
+        }
 
-            &.scale-enter {
-                transform: scale(0);
-                opacity: 0;
-            }
-        
-            &.scale-enter-active {
-                transform: scale(1);
-                opacity: 1;
-            }
-        
-            &.scale-enter-done {
-                transform: scale(1);
-                opacity: 1;
-            }
-        
-            &.scale-exit {
-                transform: scale(1);
-                opacity: 1;
-            }
-        
-            &.scale-exit-active {
-                transform: scale(0);
-                opacity: 0;
-            }
-        
-            &.scale-exit-done {
-                transform: scale(0);
-                opacity: 0;
-            }
+        &.scale-enter-active {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        &.scale-enter-done {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        &.scale-exit {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        &.scale-exit-active {
+            transform: scale(0);
+            opacity: 0;
+        }
+
+        &.scale-exit-done {
+            transform: scale(0);
+            opacity: 0;
+        }
     }
-
-    
 `;
 
 interface FormattingBarProps {
@@ -106,109 +104,30 @@ interface FormattingBarProps {
     applyMarkdown: (options: ApplyHotkeyMarkdownOptions) => void;
     textBox: HTMLInputElement;
     value: string;
-    isRenderedInCommentSection?: boolean;
 }
-
-interface Control {
-    markdownMode: ApplyHotkeyMarkdownOptions["markdownMode"];
-    icon: React.ReactNode;
-}
-
-const useFormattingBarControls = (
-    isRenderedInCommentSection: boolean
-): {
-    controls: Control[];
-    hiddenControls: Control[];
-} => {
-    const allControls: Control[] = [
-        {
-            markdownMode: "bold",
-            icon: <FormattingIcon type="bold" />,
-        },
-        {
-            markdownMode: "italic",
-            icon: <FormattingIcon type="italic" />,
-        },
-        {
-            markdownMode: "strike",
-            icon: <FormattingIcon type="strike" />,
-        },
-        {
-            markdownMode: "heading",
-            icon: <FormattingIcon type="heading" />,
-        },
-        {
-            markdownMode: "link",
-            icon: <FormattingIcon type="link" />,
-        },
-        {
-            markdownMode: "code",
-            icon: <FormattingIcon type="code" />,
-        },
-        {
-            markdownMode: "quote",
-            icon: <FormattingIcon type="quote" />,
-        },
-        {
-            markdownMode: "ul",
-            icon: <FormattingIcon type="ul" />,
-        },
-        {
-            markdownMode: "ol",
-            icon: <FormattingIcon type="ol" />,
-        },
-    ];
-
-    const controlsLength = isRenderedInCommentSection ? 3 : allControls.length;
-
-    const controls = allControls.slice(0, controlsLength);
-    const hiddenControls = allControls.slice(controlsLength);
-
-    return {
-        controls,
-        hiddenControls,
-    };
-};
-
-const useUpdateOnVisibilityChange = (
-    update: Instance["update"] | null,
-    isVisible: boolean
-) => {
-    const updateComponent = async () => {
-        if (!update) {
-            return;
-        }
-        await update();
-    };
-
-    useEffect(() => {
-        if (!isVisible) {
-            return;
-        }
-        updateComponent();
-    }, [isVisible]);
-};
 
 export const FormattingBar: React.ComponentType<FormattingBarProps> = ({
     isOpen,
     applyMarkdown,
     textBox,
     value,
-    isRenderedInCommentSection,
 }) => {
     const [isHiddenControlsVisible, setIsHiddenControlsVisible] =
         useState(false);
     const popperRef = React.useRef<HTMLDivElement | null>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
-    const { controls, hiddenControls } = useFormattingBarControls(
-        Boolean(isRenderedInCommentSection)
-    );
+    const formattingBarRef = useRef<HTMLDivElement>(null);
+    const { controls, hiddenControls, wideMode } =
+        useFormattingBarControls(formattingBarRef);
+
+    const hasHiddenControls = wideMode !== "wide";
+    console.log(hasHiddenControls, "hascontrols3333333");
 
     useEffect(() => {
         if (!isOpen) {
-            setIsHiddenControlsVisible(false)
+            setIsHiddenControlsVisible(false);
         }
-    }, [isOpen])
+    }, [isOpen]);
 
     const {
         styles: { popper },
@@ -216,14 +135,12 @@ export const FormattingBar: React.ComponentType<FormattingBarProps> = ({
         update,
     } = usePopper(triggerRef.current, popperRef.current, {
         placement: "top",
-        // modifiers: [
-        //     {
-        //         name: 'offset',
-        //         options: {
-        //             offset,
-        //         },
-        //     },
-        // ],
+        modifiers: [
+            {
+                name: "offset",
+                options: { offset: [0, 4] },
+            },
+        ],
     });
     useUpdateOnVisibilityChange(update, isHiddenControlsVisible);
 
@@ -231,22 +148,26 @@ export const FormattingBar: React.ComponentType<FormattingBarProps> = ({
         <FormattingBarContainer
             className={classNames({
                 isOpen,
-                isRenderedInCommentSection,
             })}
+            ref={formattingBarRef}
         >
             {controls.map(({ markdownMode, icon }) => {
                 return (
                     <div
                         className={classNames("control", {
                             [markdownMode]: markdownMode,
+                            [wideMode]: wideMode,
                         })}
                         onClick={() => {
                             const selectionStart = textBox.selectionStart;
                             const selectionEnd = textBox.selectionEnd;
-                            if (selectionStart===null || selectionEnd===null) {
-                                return
+                            if (
+                                selectionStart === null ||
+                                selectionEnd === null
+                            ) {
+                                return;
                             }
-                            
+
                             applyMarkdown({
                                 markdownMode,
                                 selectionStart,
@@ -260,7 +181,7 @@ export const FormattingBar: React.ComponentType<FormattingBarProps> = ({
                 );
             })}
 
-            {isRenderedInCommentSection && (
+            {hasHiddenControls && (
                 <Icon
                     ref={triggerRef}
                     onClick={(event) => {
@@ -293,9 +214,12 @@ export const FormattingBar: React.ComponentType<FormattingBarProps> = ({
                                             textBox.selectionStart;
                                         const selectionEnd =
                                             textBox.selectionEnd;
-                                            if (selectionStart===null || selectionEnd===null) {
-                                                return
-                                            }
+                                        if (
+                                            selectionStart === null ||
+                                            selectionEnd === null
+                                        ) {
+                                            return;
+                                        }
                                         applyMarkdown({
                                             markdownMode,
                                             selectionStart,
@@ -308,19 +232,24 @@ export const FormattingBar: React.ComponentType<FormattingBarProps> = ({
                                 </div>
                             );
                         })}
-                        {isRenderedInCommentSection && <Question />}
+                        {hasHiddenControls && <Question />}
                     </div>
                 </CSSTransition>
             </HiddenControlsContainer>
 
-            {!isRenderedInCommentSection && <Question />}
+            {!hasHiddenControls && <Question />}
         </FormattingBarContainer>
     );
 };
 
 const Question = () => {
     return (
-        <div className="control" onClick={(event) => {event.preventDefault();}}>
+        <div
+            className="control"
+            onClick={(event) => {
+                event.preventDefault();
+            }}
+        >
             <Icon>
                 <i className="fa fa-question" />
             </Icon>
