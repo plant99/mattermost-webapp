@@ -68,7 +68,7 @@ export default class MFAController extends React.PureComponent<Props & RouteComp
 
     public render(): JSX.Element {
         let backButton;
-        if (this.props.mfa && this.props.enforceMultifactorAuthentication) {
+        if (this.props.enforceMultifactorAuthentication) {
             backButton = (
                 <div className='signup-header'>
                     <button

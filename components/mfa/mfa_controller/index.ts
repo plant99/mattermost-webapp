@@ -16,7 +16,9 @@ function mapStateToProps(state: GlobalState) {
     const mfa = license.MFA === 'true';
     const enableMultifactorAuthentication = config.EnableMultifactorAuthentication === 'true';
     const enforceMultifactorAuthentication = config.EnforceMultifactorAuthentication === 'true';
-
+    /* eslint-disable no-console */
+    console.log(enableMultifactorAuthentication, enforceMultifactorAuthentication);
+    /* eslint-enable no-console */
     return {
         mfa,
         enableMultifactorAuthentication,
